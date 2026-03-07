@@ -6,15 +6,15 @@ library(ggplot2)
 library(dplyr)
 
 # true function: slow sinusoid + fast decaying oscillation
-f <- function(x) sin(x) * 2*exp(-x / 5) + 0.5 * sin(5 * x)
+f <- function(x) sin(x) * exp(-x / 5) + 0.5 * sin(5 * x)
 
-sigma_noise <- 0.4
+sigma_noise <- 0.3
 set.seed(42)
 
 x_plot <- seq(0, 10, length.out = 500)
 y_plot <- f(x_plot)
 
-n_obs <- 200
+n_obs <- 500
 x_obs <- sort(runif(n_obs, 0, 10))
 y_obs <- f(x_obs) + rnorm(n_obs, 0, sigma_noise)
 
