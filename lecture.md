@@ -10,12 +10,14 @@ A **Gaussian Process (GP)** is a probability distribution over *functions*. Just
 
 Formally, we write:
 
-$$ f(x) \sim \mathcal{GP}(m(x), k(x, x')) $$
+```
+f(x) ~ GP(m(x), k(x, x'))
+```
 
 - `m(x)` is the **mean function** — the expected value of `f` at input `x`. In both files, this is set to a constant (`~1` in R, implicitly zero in Python), meaning we don't assume any particular trend a priori.
 - `k(x, x')` is the **covariance function** (or **kernel**) — the key object. It encodes our belief about how correlated `f(x)` and `f(x')` are, which in practice means: *how smooth do we expect the function to be, and over what length scales?*
 
-The GP prior says: *before seeing any data, I believe the function values at any finite set of points follow a joint Gaussian distribution with mean `m` and covariance matrix `K` whose `(i,j)` entry is `k(x_i, x_j)`.*
+The GP prior says: *before seeing any data, I believe the function values at any finite set of points follow a joint Gaussian distribution with mean `m` and covariance matrix `K` whose `(i,j)` entry is `k(xᵢ, xⱼ)`.*
 
 ---
 
@@ -23,7 +25,9 @@ The GP prior says: *before seeing any data, I believe the function values at any
 
 Both files use a **noisy regression** setup:
 
-$$ y = f(x) + \varepsilon, \quad \varepsilon \sim \mathcal{N}(0, \sigma^2) $$
+```
+y = f(x) + ε,    ε ~ N(0, σ²)
+```
 
 where `f` is the latent (unobserved) function and `σ²` is observation noise variance. Specifically, the true function is:
 
@@ -50,7 +54,9 @@ The kernel determines the geometry of functions the GP can represent. Here are t
 
 ### 3.1 Radial Basis Function (RBF) / Squared Exponential
 
-$$ k_{RBF}(x, x') = \sigma_f^2 \exp\left(-\frac{(x - x')^2}{2\ell^2}\right) $$
+```
+k_RBF(x, x') = σ_f² · exp(-0.5 · (x - x')² / ℓ²)
+```
 
 - `ℓ` (length-scale): controls how quickly the function varies. Large `ℓ` → smooth, slow-varying. Small `ℓ` → wiggly, fast-varying.
 - `σ_f²` (signal variance): controls the marginal variance, i.e., the amplitude of function values.
@@ -59,7 +65,9 @@ RBF produces infinitely differentiable (very smooth) functions. It is the defaul
 
 ### 3.2 Matérn 5/2 (used in the R file)
 
-$$ k_{Matern52}(x, x') = \sigma_f^2 \left(1 + \frac{\sqrt{5}|r|}{\ell} + \frac{5r^2}{3\ell^2}\right) \exp\left(-\frac{\sqrt{5}|r|}{\ell}\right) $$
+```
+k_Matern52(x, x') = σ_f² · (1 + √5·|r|/ℓ + 5r²/(3ℓ²)) · exp(-√5·|r|/ℓ)
+```
 
 where `r = x - x'`.
 
@@ -75,13 +83,17 @@ In practice, Matérn 5/2 is the workhorse kernel for emulation and surrogate mod
 
 This is a **non-stationary** kernel constructed by blending two RBF kernels using a sigmoid weight:
 
-$$ \sigma(x) = \frac{1}{1 + \exp(-s(x - c))} $$
+```
+σ(x) = 1 / (1 + exp(-s·(x - c)))
+```
 
 where `c` is the changepoint location and `s` controls the sharpness of the transition.
 
 The kernel is:
 
-$$ k_{CP}(x, x') = \sigma(x)\sigma(x')k_{RBF1}(x, x') + (1 - \sigma(x))(1 - \sigma(x'))k_{RBF2}(x, x') $$
+```
+k_CP(x, x') = σ(x)·σ(x')·k_RBF1(x, x') + (1 - σ(x))·(1 - σ(x'))·k_RBF2(x, x')
+```
 
 - For `x << c`: `σ(x) ≈ 1`, so the kernel behaves like `k_RBF1` with parameters `(ℓ₁, σ_f1)`.
 - For `x >> c`: `σ(x) ≈ 0`, so the kernel behaves like `k_RBF2` with parameters `(ℓ₂, σ_f2)`.
@@ -99,8 +111,10 @@ Once we have observations `(X_obs, y_obs)`, we condition the GP prior on them to
 
 For a new test point `x*`, the posterior predictive distribution is Gaussian with:
 
-$$ \mu(x^*) = k(x^*, X)[K(X,X) + \sigma^2I]^{-1}y $$
-$$ \sigma^2(x^*) = k(x^*, x^*) - k(x^*, X)[K(X,X) + \sigma^2I]^{-1}k(X, x^*) $$
+```
+μ(x*) = k(x*, X)·[K(X,X) + σ²I]⁻¹·y
+σ²(x*) = k(x*, x*) - k(x*, X)·[K(X,X) + σ²I]⁻¹·k(X, x*)
+```
 
 where:
 - `K(X, X)` is the `n × n` kernel matrix over training points.
@@ -115,12 +129,8 @@ The Python notebook computes this explicitly:
 
 ```python
 K_train = cp_kernel(x_obs, x_obs, ...) + sigma_noise**2 * np.eye(n_obs)
-L_train = cholesky(K_train, lower=True)
 alpha   = solve_triangular(L_train.T, solve_triangular(L_train, y_obs, lower=True))
 mu_cp   = K_star @ alpha
-
-# v is used to compute the posterior variance efficiently
-v       = solve_triangular(L_train, K_star.T, lower=True)
 std_cp  = sqrt(diag(K_ss) - sum(v**2, axis=0))
 ```
 
@@ -134,7 +144,9 @@ The naive way to compute the GP posterior is to directly invert `[K + σ²I]`. T
 
 The standard approach is **Cholesky decomposition**:
 
-$$ K + \sigma^2I = LL^\top \quad (L \text{ is lower triangular}) $$
+```
+K + σ²I = L·Lᵀ    (L is lower triangular)
+```
 
 Then:
 - `[K + σ²I]⁻¹·y` is solved as two triangular solves: `L·v = y` then `Lᵀ·α = v`.
@@ -152,7 +164,9 @@ A GP has hyperparameters — the kernel parameters `(ℓ, σ_f)` and noise varia
 
 The **log-marginal likelihood (LML)** is the log-probability of the observed data under the GP model, marginalised over the function values:
 
-$$ \log p(y | X, \theta) = -\frac{1}{2}y^\top[K + \sigma^2I]^{-1}y - \frac{1}{2}\log|K + \sigma^2I| - \frac{n}{2}\log(2\pi) $$
+```
+log p(y | X, θ) = -½·yᵀ·[K + σ²I]⁻¹·y  -  ½·log|K + σ²I|  -  n/2·log(2π)
+```
 
 Three terms:
 1. **Data fit** (`-½·yᵀ·[K + σ²I]⁻¹·y`): rewards kernels that assign high probability to the observed `y`.
