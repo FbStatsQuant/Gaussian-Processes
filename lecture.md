@@ -260,15 +260,3 @@ The Python notebook imports `GPy`, `torch`, and `gpytorch` but does not use them
 | MAE/MSE evaluation against ground truth | Both files |
 
 ---
-
-## 12. Things to Be Aware Of (Practical Gotchas)
-
-**The changepoint location is fixed, not learned.** Setting `c_cp = 5.0` works because the domain is `[0, 10]` and the function's character visibly changes around that point. In practice you would either cross-validate over candidate values, include `c` in the LML optimisation (with care, since the objective is non-convex in `c`), or use a fully Bayesian treatment.
-
-**`np.clip(..., 0, None)` in the variance computation.** Numerical errors in floating point can push the diagonal of the posterior covariance matrix slightly negative. The clip prevents `sqrt` of a negative number. If this happens a lot, your kernel matrix is poorly conditioned — add more noise or use a larger nugget.
-
-**`200` observations is the sweet spot for this demo.** The Cholesky is `O(n³)`, so tripling `n` to 600 multiplies runtime by ~27. At `n = 2000` you would want to switch to sparse or inducing-point approximations.
-
-**L-BFGS-B on log-transformed parameters.** Optimising `log(ℓ)` instead of `ℓ` directly ensures positivity and improves the conditioning of the objective. This is a standard trick — always do it.
-
-**The R and Python functions are not identical.** The R version has a factor of `2` in front of `exp(-x/5)`. The models are fit to different instantiations of the same noisy process (different `sigma_noise = 0.4` vs `0.3`). Do not expect identical results.
