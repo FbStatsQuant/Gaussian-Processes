@@ -115,8 +115,12 @@ The Python notebook computes this explicitly:
 
 ```python
 K_train = cp_kernel(x_obs, x_obs, ...) + sigma_noise**2 * np.eye(n_obs)
+L_train = cholesky(K_train, lower=True)
 alpha   = solve_triangular(L_train.T, solve_triangular(L_train, y_obs, lower=True))
 mu_cp   = K_star @ alpha
+
+# v is used to compute the posterior variance efficiently
+v       = solve_triangular(L_train, K_star.T, lower=True)
 std_cp  = sqrt(diag(K_ss) - sum(v**2, axis=0))
 ```
 
