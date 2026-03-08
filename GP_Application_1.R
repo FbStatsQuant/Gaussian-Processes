@@ -31,7 +31,6 @@ ggplot() +
   labs(x = "x", y = "y", title = "True function and noisy observations") +
   theme_bw(base_size = 14)
 
-# fit GP with Matern 5/2 kernel, noise estimated from data
 gp_fit <- km(
   formula   = ~1,
   design    = data.frame(x = x_obs),
@@ -40,7 +39,6 @@ gp_fit <- km(
   nugget.estim = TRUE
 )
 
-# predict on dense grid
 gp_pred <- predict(gp_fit, newdata = data.frame(x = x_plot), type = "UK")
 
 df_gp <- data.frame(
