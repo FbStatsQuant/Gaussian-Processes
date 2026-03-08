@@ -68,16 +68,6 @@ df_decomp <- data.frame(
   f_se       = 1.5 * sin(6 * pi * x_plot) * exp(-4 * x_plot)
 )
 
-# --- Plots ---
-df_decomp <- data.frame(
-  x          = x_plot,
-  mu_full    = mu_full,
-  mu_linear  = mu_linear,
-  mu_se      = mu_se,
-  f_true     = y_plot,
-  f_linear   = 3 * x_plot,
-  f_se       = 1.5 * sin(6 * pi * x_plot) * exp(-4 * x_plot)
-)
 # --- Posterior variance ---
 K_lin_xx <- k_linear(x_plot, x_plot)
 K_se_xx  <- k_se(x_plot, x_plot)
@@ -91,7 +81,6 @@ sd_star    <- sqrt(pmax(diag(Sigma_star), 0))  # pmax guards against tiny negati
 
 df_decomp$sd <- sd_star
 
-# --- Updated plots ---
 # Full fit
 ggplot(df_decomp) +
   geom_ribbon(aes(x = x, ymin = mu_full - 2*sd, ymax = mu_full + 2*sd),
