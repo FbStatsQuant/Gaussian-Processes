@@ -5,7 +5,6 @@ library(mlegp)
 library(ggplot2)
 library(dplyr)
 
-# true function: slow sinusoid + fast decaying oscillation
 f <- function(x) sin(x) * exp(-x / 5) + 0.5 * sin(5 * x)
 
 sigma_noise <- 0.3
